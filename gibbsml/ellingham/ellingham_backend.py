@@ -23,12 +23,12 @@ class Ellingham():
                                         )
         # Build GP model.
         kernel = [
-          {'type': 'gaussian', 'width': 20., 'scaling': 1.5},
+          {'type': 'gaussian', 'width': 1., 'scaling': 1.},
           {'type': 'linear', 'scaling': 1., 'constant': 1.},
           ]
         # Train the GP model.
-        gp = GaussianProcess(kernel_list=kernel, regularization=1e-2,
-                             regularization_bounds=(1e-2, 1e-1),
+        gp = GaussianProcess(kernel_list=kernel, regularization=1e-3,
+                             regularization_bounds=(1e-5, 1e-1),
                              train_fp=train_x, train_target=train_y,
                              optimize_hyperparameters=False,
                              scale_data=True)
