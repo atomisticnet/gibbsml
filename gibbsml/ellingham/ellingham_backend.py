@@ -1,4 +1,4 @@
-from .fingerprint import Fingerprint
+from gibbsml.ellingham.fingerprint import Fingerprint
 from catlearn.regression.gaussian_process import GaussianProcess
 import os
 
@@ -6,6 +6,7 @@ import os
 class Ellingham():
 
     def __init__(self, USER_API_KEY, id_mo, id_m1='', id_m2='',
+                 id_oxygen='mp-12957',
                  p_O2=0.0, p_CO=0.0, p_CO2=0.0):
 
         self.user_api_key = USER_API_KEY
@@ -40,6 +41,7 @@ class Ellingham():
         test_fp.extract_mp_features(id_mo=id_mo,
                                     id_m1=id_m1,
                                     id_m2=id_m2,
+                                    id_oxygen=id_oxygen,
                                     selected_features='ellingham')
         test_x = test_fp.get_features_values()
 
