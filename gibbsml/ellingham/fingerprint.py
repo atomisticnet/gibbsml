@@ -93,7 +93,10 @@ class Fingerprint:
 
         # Set oxygen energy and MO energy corrections.
         with MPRester(self.user_api_key) as m:
-            e_mo_corr = m.get_entries(id_mo)[0].__dict__['correction']
+            e_adjus = m.get_entries(id_mo)[0].__dict__['energy_adjustments']
+            e_mo_corr = 0
+            for e_ad in e_adjus:
+                e_mo_corr += e_ad.value
         if mo_energy_correction is False:
             e_mo_corr = 0.0
         data_o2 = m.get_data(id_oxygen)[0]
