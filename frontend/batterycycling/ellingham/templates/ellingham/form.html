@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block 'body' %}
+<nav class="navbar navbar-expand-md navbar-dark bg-primary">
+    <a class="navbar-brand mb-0 h1">Ellingham Diagram Calculator</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+            <a class="nav-item nav-link active disabled">Home<span class="sr-only">(current)</span></a>
+            <a class="nav-item nav-link" href="#">About the Model</a>
+            <a class="nav-item nav-link" href="#">Contributors</a>
+            <a class="nav-item nav-link" href="#">Contact</a>
+        </div>
+    </div>
+</nav>
+<br>
+<div class="container">
+    <div class="row">
+        <div class="col-lg">
+            <form action="{% url 'ellingham' %}" method="GET" class="needs-validation" novalidate>
+                {% if oxide_error %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ oxide_error }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endif %}
+                <div class="form-group">
+                    <!-- OXIDE INPUT -->
+                    {{ oxide_form.id_mo.label_tag }}
+                    <div class="form-row">
+                        <div class="col-7 col-lg-9">
+                            {{ oxide_form.id_mo }}
+                            <div class="invalid-feedback">
+                                Please fill out this field before clicking the "Add" button.
+                            </div>
+                            <small id="{{ oxide_form.id_mo.id_for_label }}_help_text" class="form-text text-muted">
+                                {{ oxide_form.id_mo.help_text }}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <input name="current_oxides" type="hidden" value="{{ all_oxides|join:' ' }}">
+                            <input class="btn btn-primary" type="submit" value="Add">
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <form action="{% url 'ellingham' %}" method="POST" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-sm">
+                        <!-- OXIDE LIST -->
+                        <div class="form-group">
+                            <p>Select Metal Oxides:</p>
+                            {% if all_oxides|length > 0 %}
+                                <div class="form-check">
+                                    {% if select_oxides|length > 0 %}
+                                        {% for oxide in all_oxides %}
+                                            {% if oxide in select_oxides %}
+                                                <input class="form-check-input" name="select_oxides" type="checkbox" value="{{ oxide }}" checked>
+                                            {% else %}
+                                                <input class="form-check-input" name="select_oxides" type="checkbox" value="{{ oxide }}">
+                                            {% endif %}
+                                            <label class="form-check-label" for="{{ oxide }}">{{ oxide }}</label>
+                                            <br>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for oxide in all_oxides %}
+                                            <input class="form-check-input" name="select_oxides" type="checkbox" value="{{ oxide }}" required>
+                                            <label class="form-check-label" for="{{ oxide }}">{{ oxide }}</label>
+                                            <br>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <div class="invalid-feedback">
+                                        Select at least one metal oxide from the list to calculate.
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="form-row">
+                                    <div class="col-auto">
+                                        <a data-toggle="tooltip" data-placement="bottom" title="toggles between 'Select All' & 'Deselect All'">
+                                            <input class="btn btn-secondary" type="button" id="toggleAll" value="Select All">
+                                        </a>
+                                    </div>
+                                    <div class="col-auto">
+                                        <a href="{% url 'ellingham' %}" data-toggle="tooltip" data-placement="bottom" title="removes all items currently in the list">
+                                            <input class="btn btn-secondary" type="button" value="Clear List">
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger" role="alert">Please add at least one metal oxide to the list.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm order-sm-first">
+                        <!-- FORM -->
+                        {% if api_key_error %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                {{ api_key_error }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endif %}
+                        {% for field in form %}
+                            <div class="form-group">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                <div class="invalid-feedback">
+                                    {% cycle "This field is required." "Please enter a temperature between 0 & 3000 K." %}
+                                </div>
+                                <small id="{{ field.id_for_label }}_help_text" class="form-text text-muted">
+                                    {{ field.help_text|safe }}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <input name="current_oxides" type="hidden" value="{{ all_oxides|join:' ' }}">
+                        {% if all_oxides|length > 0 %}
+                            <input class="btn btn-primary" type="submit" value="Calculate" onclick="loadingMessage()">
+                        {% else %}
+                            <input class="btn btn-primary" type="submit" value="Calculate" disabled>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+        &nbsp;
+        <div class="col-lg">
+            <div class="alert alert-info" role="alert" id="load" hidden>
+                Please wait; retrieving data from Materials Project. This may take a few minutes, depending on how many metal oxides you selected.
+            </div>
+            {% if calc_error %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    {{ calc_error }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endif %}
+            <!-- OUTPUT TABLE -->
+            {% if message %}
+                <p><strong>{{ message }}</strong></p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <caption>Data courtesy of the <a href="https://materialsproject.org/open">Materials Project API</a> & <a href="https://pymatgen.org/index.html">pymatgen</a>.</caption>
+                        <thead class="thead-light">
+                            <tr>
+                                {% for header in headers %}
+                                    <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for oxide, plain_oxide, id, formation_energy, entropy, free_energy, rxn, plain_rxn in output %}
+                                <tr>
+                                    <td>{{ oxide }}</td>
+                                    <td class="plaintext" hidden>{{ plain_oxide }}</td>
+                                    <td class="text-nowrap"><a href="https://materialsproject.org/materials/{{ id }}/" target="_blank">{{ id }}</a></td>
+                                    <td class="plaintext" hidden>{{ id }}</td>
+                                    <td class="plaintext">{{ formation_energy }}</td>
+                                    <td class="plaintext">{{ entropy }}</td>
+                                    <td class="plaintext">{{ free_energy }}</td>
+                                    <td class="text-nowrap">{{ rxn }}</td>
+                                    <td class="plaintext" hidden>{{ plain_rxn }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row justify-content-center">
+                    <input class="btn btn-primary" type="button" value="Export to CSV" onclick="exportTableToCSV('{{ plaintext_message }}.csv')">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if message %}
+    <p>
+        <div class="card">
+            <div class="card-body">
+                <!-- OUTPUT DIAGRAM -->
+                {{ diagram|safe }}
+            </div>
+        </div>
+    </p>
+    {% endif %}
+</div>
+<footer class="mt-auto">
+    <nav class="nav justify-content-center">
+        <a class="nav-link active disabled">Home</a>
+        <a class="nav-link" href="#">About the Model</a>
+        <a class="nav-link" href="#">Contributors</a>
+        <a class="nav-link" href="#">Contact</a>
+    </nav>
+</footer>
+<br>
+{% endblock %}
