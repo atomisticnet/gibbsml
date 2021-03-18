@@ -1,13 +1,29 @@
-from gibbsml.ellingham.fingerprint import Fingerprint
-from catlearn.regression.gaussian_process import GaussianProcess
 import os
+from catlearn.regression.gaussian_process import GaussianProcess
+
+from .fingerprint import Fingerprint
+
+__author__ = "Jose A. Garrido Torres, Alexander Urban"
+__email__ = "aurban@atomistic.net"
+__date__ = "2021-03-18"
+__version__ = "1.0"
 
 
 class Ellingham():
 
     def __init__(self, USER_API_KEY, id_mo, id_m1='', id_m2='',
-                 id_oxygen='mp-12957',
-                 p_O2=0.0, p_CO=0.0, p_CO2=0.0):
+                 id_oxygen='mp-12957', p_O2=0.0, p_CO=0.0, p_CO2=0.0):
+        """
+        Args:
+          USER_API_KEY: Personal API key for the Materials Project (MP)
+            database (https://materialsproject.org)
+          id_mo: Chemical formula or MP ID of the metal oxide
+          id_m1, id_m2: MP IDs of the metal species; will be determined
+            automatically if not provided
+          id_oxygen: MP ID of the O2 entry to be used as reference
+          p_O2, p_CO, p_CO2: O2, CO, and CO2 partial pressures
+
+        """
 
         self.user_api_key = USER_API_KEY
         train_fp = Fingerprint(USER_API_KEY=self.user_api_key)
@@ -20,13 +36,13 @@ class Ellingham():
         # Get training data.
         train_x = train_fp.get_features_values()
         train_y = train_fp.get_target_features_values(
-                                        target_feature='dS0_expt'
-                                        )
+            target_feature='dS0_expt')
+
         # Build GP model.
         kernel = [
-          {'type': 'gaussian', 'width': 1., 'scaling': 1.},
-          {'type': 'linear', 'scaling': 1., 'constant': 1.},
-          ]
+            {'type': 'gaussian', 'width': 1., 'scaling': 1.},
+            {'type': 'linear', 'scaling': 1., 'constant': 1.}]
+
         # Train the GP model.
         gp = GaussianProcess(kernel_list=kernel, regularization=1e-3,
                              regularization_bounds=(1e-5, 1e-1),
@@ -67,4 +83,3 @@ class Ellingham():
 
     def get_balanced_reaction(self):
         return self.balanced_reaction
-

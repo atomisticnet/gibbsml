@@ -1,12 +1,17 @@
-from pymatgen.ext.matproj import MPRester
-from ase.io import read
 import os
-import pandas as pd
-from mendeleev import element
-import numpy as np
+import json
 from functools import reduce
 from math import gcd
-import json
+
+from ase.io import read
+from mendeleev import element
+import numpy as np
+from pymatgen.ext.matproj import MPRester
+
+__author__ = "Jose A. Garrido Torres, Alexander Urban"
+__email__ = "aurban@atomistic.net"
+__date__ = "2021-03-18"
+__version__ = "1.0"
 
 
 class Fingerprint:
@@ -155,7 +160,7 @@ class Fingerprint:
         # Get formula unit for M1, M2 and MO.
         n_m1, fu_m1 = 2 * (len(atoms_m1),)
         n_m2, fu_m2 = 2 * (len(atoms_m2),)
-        n_mo, fu_mo = len(atoms_mo), self._get_atoms_per_unit_formula(atoms_mo)
+        fu_mo = self._get_atoms_per_unit_formula(atoms_mo)
         n_m1_in_mo = self._get_number_of_atoms_element(atoms_mo,
                                                        symbol=element_m1)
         n_m1_in_mo /= fu_mo
@@ -233,20 +238,22 @@ class Fingerprint:
             elecneg_m1 = element(element_m1).en_pauling
             elecneg_m2 = element(element_m2).en_pauling
             self.add_feature(description='pauling electronegativity (mean)',
-                              value=np.mean([elecneg_m1, elecneg_m2]))
+                             value=np.mean([elecneg_m1, elecneg_m2]))
             self.add_feature(description='pauling electronegativity (var)',
-                              value=np.var([elecneg_m1, elecneg_m2]))
+                             value=np.var([elecneg_m1, elecneg_m2]))
 
         # Percentage of ionic character (Pauling).
         if 'ionic character' in self.selected_features:
-            elnegdif_m1 = element('O').en_pauling - element(element_m1).en_pauling
-            elnegdif_m2 = element('O').en_pauling - element(element_m2).en_pauling
+            elnegdif_m1 = (element('O').en_pauling
+                           - element(element_m1).en_pauling)
+            elnegdif_m2 = (element('O').en_pauling
+                           - element(element_m2).en_pauling)
             pio_m1 = 100 * (1 - np.exp(-(1/2 * elnegdif_m1)**2))
             pio_m2 = 100 * (1 - np.exp(-(1/2 * elnegdif_m2)**2))
             self.add_feature(description='% ionic character (mean)',
-                              value=np.mean([pio_m1, pio_m2]))
+                             value=np.mean([pio_m1, pio_m2]))
             self.add_feature(description='% ionic character (var)',
-                              value=np.var([pio_m1, pio_m2]))
+                             value=np.var([pio_m1, pio_m2]))
 
         # Volume.
         if 'volume' in self.selected_features:
@@ -257,17 +264,19 @@ class Fingerprint:
             V_mo = atoms_mo.get_volume()
             V_per_fu_mo = V_mo / fu_mo
             self.add_feature(description='volume per formula unit (mean)',
-                              value=np.mean([V_per_fu_m1, V_per_fu_m2]))
+                             value=np.mean([V_per_fu_m1, V_per_fu_m2]))
             self.add_feature(description='volume per formula unit (var)',
-                              value=np.var([V_per_fu_m1, V_per_fu_m2]))
+                             value=np.var([V_per_fu_m1, V_per_fu_m2]))
             self.add_feature(description='volume MO per formula unit',
-                              value=V_per_fu_mo)
+                             value=V_per_fu_mo)
             diff_V_per_fu_m1_mo = V_per_fu_mo - V_per_fu_m1
             diff_V_per_fu_m2_mo = V_per_fu_mo - V_per_fu_m2
             self.add_feature(description='difference volume (MO-M) (mean)',
-                              value=np.mean([diff_V_per_fu_m1_mo, diff_V_per_fu_m2_mo]))
+                             value=np.mean([diff_V_per_fu_m1_mo,
+                                            diff_V_per_fu_m2_mo]))
             self.add_feature(description='difference volume (MO-M) (var)',
-                              value=np.var([diff_V_per_fu_m1_mo, diff_V_per_fu_m2_mo]))
+                             value=np.var([diff_V_per_fu_m1_mo,
+                                           diff_V_per_fu_m2_mo]))
 
         # Mass.
         if 'mass' in self.selected_features:
@@ -278,17 +287,19 @@ class Fingerprint:
             mass_per_fu_m2 = mass_m2 / fu_m2
             mass_per_fu_mo = mass_mo / fu_mo
             self.add_feature(description='mass per formula unit (mean)',
-                              value=np.mean([mass_per_fu_m1, mass_per_fu_m2]))
+                             value=np.mean([mass_per_fu_m1, mass_per_fu_m2]))
             self.add_feature(description='mass per formula unit (var)',
-                              value=np.var([mass_per_fu_m1, mass_per_fu_m2]))
+                             value=np.var([mass_per_fu_m1, mass_per_fu_m2]))
             self.add_feature(description='mass MO per formula unit',
-                              value=mass_per_fu_mo)
+                             value=mass_per_fu_mo)
             diff_mass_per_fu_m1_mo = mass_per_fu_mo - mass_per_fu_m1
             diff_mass_per_fu_m2_mo = mass_per_fu_mo - mass_per_fu_m2
             self.add_feature(description='difference mass (MO-M) (mean)',
-                              value=np.mean([diff_mass_per_fu_m1_mo, diff_mass_per_fu_m2_mo]))
+                             value=np.mean([diff_mass_per_fu_m1_mo,
+                                            diff_mass_per_fu_m2_mo]))
             self.add_feature(description='difference mass (MO-M) (var)',
-                              value=np.var([diff_mass_per_fu_m1_mo, diff_mass_per_fu_m2_mo]))
+                             value=np.var([diff_mass_per_fu_m1_mo,
+                                           diff_mass_per_fu_m2_mo]))
 
         # Density.
         if 'density' in self.selected_features:
@@ -296,96 +307,122 @@ class Fingerprint:
             dens_m2 = data_m2['density']
             dens_mo = data_mo['density']
             self.add_feature(description='density (mean)',
-                              value=np.mean([dens_m1, dens_m2]))
+                             value=np.mean([dens_m1, dens_m2]))
             self.add_feature(description='density (var)',
-                              value=np.var([dens_m1, dens_m2]))
+                             value=np.var([dens_m1, dens_m2]))
             self.add_feature(description='density MO', value=dens_mo)
             diff_dens_m1_mo = dens_mo - dens_m1
             diff_dens_m2_mo = dens_mo - dens_m2
             self.add_feature(description='difference density (MO-M) (mean)',
-                              value=np.mean([diff_dens_m1_mo, diff_dens_m2_mo]))
+                             value=np.mean([diff_dens_m1_mo, diff_dens_m2_mo]))
             self.add_feature(description='difference density (MO-M) (var)',
-                              value=np.var([diff_dens_m1_mo, diff_dens_m2_mo]))
+                             value=np.var([diff_dens_m1_mo, diff_dens_m2_mo]))
 
         # Bulk modulus.
         if 'bulk modulus' in self.selected_features:
-            elas_m1, elas_m2, elas_mo = data_m1['elasticity'], data_m2['elasticity'], data_mo['elasticity']
-            Kv_m1, Kv_m2, Kv_mo = elas_m1['K_Voigt'], elas_m2['K_Voigt'], elas_mo['K_Voigt']
+            elas_m1 = data_m1['elasticity']
+            elas_m2 = data_m2['elasticity']
+            elas_mo = data_mo['elasticity']
+            Kv_m1, Kv_m2, Kv_mo = (elas_m1['K_Voigt'], elas_m2['K_Voigt'],
+                                   elas_mo['K_Voigt'])
             self.add_feature(description='bulk modulus (mean)',
-                              value=np.mean([Kv_m1, Kv_m2]))
+                             value=np.mean([Kv_m1, Kv_m2]))
             self.add_feature(description='bulk modulus (var)',
-                              value=np.var([Kv_m1, Kv_m2]))
+                             value=np.var([Kv_m1, Kv_m2]))
             self.add_feature(description='bulk modulus MO', value=Kv_mo)
             diff_Kv_m1_mo = Kv_mo - Kv_m1
             diff_Kv_m2_mo = Kv_mo - Kv_m2
-            self.add_feature(description='difference bulk modulus (MO-M) (mean)',
-                       value=np.mean([diff_Kv_m1_mo, diff_Kv_m2_mo]))
-            self.add_feature(description='difference bulk modulus (MO-M) (var)',
-                       value=np.var([diff_Kv_m1_mo, diff_Kv_m2_mo]))
+            self.add_feature(
+                description='difference bulk modulus (MO-M) (mean)',
+                value=np.mean([diff_Kv_m1_mo, diff_Kv_m2_mo]))
+            self.add_feature(
+                description='difference bulk modulus (MO-M) (var)',
+                value=np.var([diff_Kv_m1_mo, diff_Kv_m2_mo]))
 
         # Shear modulus.
         if 'shear modulus' in self.selected_features:
-            elas_m1, elas_m2, elas_mo = data_m1['elasticity'], data_m2['elasticity'], data_mo['elasticity']
-            Gv_m1, Gv_m2, Gv_mo = elas_m1['G_Voigt'], elas_m2['G_Voigt'], elas_mo['G_Voigt']
+            elas_m1 = data_m1['elasticity']
+            elas_m2 = data_m2['elasticity']
+            elas_mo = data_mo['elasticity']
+            Gv_m1, Gv_m2, Gv_mo = (elas_m1['G_Voigt'], elas_m2['G_Voigt'],
+                                   elas_mo['G_Voigt'])
             self.add_feature(description='shear modulus (mean)',
-                              value=np.mean([Gv_m1, Gv_m2]))
+                             value=np.mean([Gv_m1, Gv_m2]))
             self.add_feature(description='shear modulus (var)',
-                              value=np.var([Gv_m1, Gv_m2]))
+                             value=np.var([Gv_m1, Gv_m2]))
             self.add_feature(description='shear modulus MO', value=Gv_mo)
             diff_Gv_m1_mo = Gv_mo - Gv_m1
             diff_Gv_m2_mo = Gv_mo - Gv_m2
-            self.add_feature(description='difference shear modulus (MO-M) (mean)',
-                              value=np.mean([diff_Gv_m1_mo, diff_Gv_m2_mo]))
-            self.add_feature(description='difference shear modulus (MO-M) (var)',
-                              value=np.var([diff_Gv_m1_mo, diff_Gv_m2_mo]))
+            self.add_feature(
+                description='difference shear modulus (MO-M) (mean)',
+                value=np.mean([diff_Gv_m1_mo, diff_Gv_m2_mo]))
+            self.add_feature(
+                description='difference shear modulus (MO-M) (var)',
+                value=np.var([diff_Gv_m1_mo, diff_Gv_m2_mo]))
 
         # Poissons Ratio.
         if 'poisson ratio' in self.selected_features:
-            elas_m1, elas_m2, elas_mo = data_m1['elasticity'], data_m2['elasticity'], data_mo['elasticity']
-            pois_m1, pois_m2, pois_mo = elas_m1['poisson_ratio'], elas_m2['poisson_ratio'], elas_mo['poisson_ratio']
+            elas_m1 = data_m1['elasticity']
+            elas_m2 = data_m2['elasticity']
+            elas_mo = data_mo['elasticity']
+            pois_m1, pois_m2, pois_mo = (elas_m1['poisson_ratio'],
+                                         elas_m2['poisson_ratio'],
+                                         elas_mo['poisson_ratio'])
             self.add_feature(description='poisson ratio (mean)',
-                              value=np.mean([pois_m1, pois_m2]))
+                             value=np.mean([pois_m1, pois_m2]))
             self.add_feature(description='poisson ratio (var)',
-                              value=np.var([pois_m1, pois_m2]))
+                             value=np.var([pois_m1, pois_m2]))
             self.add_feature(description='poisson ratio MO', value=pois_mo)
             diff_pois_m1_mo = pois_mo - pois_m1
             diff_pois_m2_mo = pois_mo - pois_m2
-            self.add_feature(description='difference poisson ratio (MO-M) (mean)',
-                              value=np.mean([diff_pois_m1_mo, diff_pois_m2_mo]))
-            self.add_feature(description='difference poisson ratio (MO-M) (var)',
-                              value=np.var([diff_pois_m1_mo, diff_pois_m2_mo]))
+            self.add_feature(
+                description='difference poisson ratio (MO-M) (mean)',
+                value=np.mean([diff_pois_m1_mo, diff_pois_m2_mo]))
+            self.add_feature(
+                description='difference poisson ratio (MO-M) (var)',
+                value=np.var([diff_pois_m1_mo, diff_pois_m2_mo]))
 
         # Universal anisotropy.
         if 'anisotropy' in self.selected_features:
-            elas_m1, elas_m2, elas_mo = data_m1['elasticity'], data_m2['elasticity'], data_mo['elasticity']
-            u_ani_m1, u_ani_m2, u_ani_mo = elas_m1['universal_anisotropy'], elas_m2['universal_anisotropy'], elas_mo['universal_anisotropy']
-            el_ani_m1, el_ani_m2, el_ani_mo = elas_m1['elastic_anisotropy'], elas_m2['elastic_anisotropy'], elas_mo['elastic_anisotropy']
+            elas_m1 = data_m1['elasticity']
+            elas_m2 = data_m2['elasticity']
+            elas_mo = data_mo['elasticity']
+            u_ani_m1, u_ani_m2, u_ani_mo = (elas_m1['universal_anisotropy'],
+                                            elas_m2['universal_anisotropy'],
+                                            elas_mo['universal_anisotropy'])
+            el_ani_m1, el_ani_m2, el_ani_mo = (elas_m1['elastic_anisotropy'],
+                                               elas_m2['elastic_anisotropy'],
+                                               elas_mo['elastic_anisotropy'])
             self.add_feature(description='universal anisotropy (mean)',
-                              value=np.mean([u_ani_m1, u_ani_m2]))
+                             value=np.mean([u_ani_m1, u_ani_m2]))
             self.add_feature(description='universal anisotropy (var)',
-                              value=np.var([u_ani_m1, u_ani_m2]))
+                             value=np.var([u_ani_m1, u_ani_m2]))
             self.add_feature(description='universal anisotropy MO',
-                              value=u_ani_mo)
+                             value=u_ani_mo)
             diff_u_ani_m1_mo = u_ani_mo - u_ani_m1
             diff_u_ani_m2_mo = u_ani_mo - u_ani_m2
-            self.add_feature(description='difference universal anisotropy (MO-M) (mean)',
-                              value=np.mean([diff_u_ani_m1_mo, diff_u_ani_m2_mo]))
-            self.add_feature(description='difference universal anisotropy (MO-M) (var)',
-                              value=np.var([diff_u_ani_m1_mo, diff_u_ani_m2_mo]))
+            self.add_feature(
+                description='difference universal anisotropy (MO-M) (mean)',
+                value=np.mean([diff_u_ani_m1_mo, diff_u_ani_m2_mo]))
+            self.add_feature(
+                description='difference universal anisotropy (MO-M) (var)',
+                value=np.var([diff_u_ani_m1_mo, diff_u_ani_m2_mo]))
 
             # Elastic anisotropy.
             self.add_feature(description='elastic anisotropy (mean)',
-                              value=np.mean([el_ani_m1, el_ani_m2]))
+                             value=np.mean([el_ani_m1, el_ani_m2]))
             self.add_feature(description='elastic anisotropy (var)',
-                              value=np.var([el_ani_m1, el_ani_m2]))
+                             value=np.var([el_ani_m1, el_ani_m2]))
             self.add_feature(description='elastic anisotropy MO',
-            value=el_ani_mo)
+                             value=el_ani_mo)
             diff_el_ani_m1_mo = el_ani_mo - el_ani_m1
             diff_el_ani_m2_mo = el_ani_mo - el_ani_m2
-            self.add_feature(description='difference elastic anisotropy (MO-M) (mean)',
-                              value=np.mean([diff_el_ani_m1_mo, diff_el_ani_m2_mo]))
-            self.add_feature(description='difference elastic anisotropy (MO-M) (var)',
-                              value=np.var([diff_el_ani_m1_mo, diff_el_ani_m2_mo]))
+            self.add_feature(
+                description='difference elastic anisotropy (MO-M) (mean)',
+                value=np.mean([diff_el_ani_m1_mo, diff_el_ani_m2_mo]))
+            self.add_feature(
+                description='difference elastic anisotropy (MO-M) (var)',
+                value=np.var([diff_el_ani_m1_mo, diff_el_ani_m2_mo]))
 
         # Spacegroup.
         if 'spacegroup' in self.selected_features:
@@ -504,8 +541,7 @@ class Fingerprint:
             features_values.append(features_i)
         val_shape = np.shape(features_values)
         features_values = np.reshape(features_values,
-                                     (val_shape[0], val_shape[1])
-                                     )
+                                     (val_shape[0], val_shape[1]))
         return features_values
 
     def get_target_features_values(self, target_feature='dS0_expt'):
@@ -516,8 +552,7 @@ class Fingerprint:
             target_features_values.append([feature])
         val_shape = np.shape(target_features_values)
         target_features_values = np.reshape(target_features_values,
-                                            (val_shape[0], -1)
-                                            )
+                                            (val_shape[0], -1))
         return target_features_values
 
     def get_labels(self):
