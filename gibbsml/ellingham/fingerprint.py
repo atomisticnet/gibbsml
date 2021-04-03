@@ -98,10 +98,14 @@ class Fingerprint:
 
         # Set oxygen energy and MO energy corrections.
         with MPRester(self.user_api_key) as m:
-            e_adjus = m.get_entries(id_mo)[0].__dict__['energy_adjustments']
-            e_mo_corr = 0
-            for e_ad in e_adjus:
-                e_mo_corr += e_ad.value
+            try:
+                e_adjus = m.get_entries(id_mo)[0].__dict__['energy_adjustments']
+                e_mo_corr = 0
+                for e_ad in e_adjus:
+                    e_mo_corr += e_ad.value
+            except:
+                e_adjus = m.get_entries(id_mo)[0].__dict__['correction']
+                e_mo_corr = e_adjus
         if mo_energy_correction is False:
             e_mo_corr = 0.0
         data_o2 = m.get_data(id_oxygen)[0]
@@ -323,8 +327,14 @@ class Fingerprint:
             elas_m1 = data_m1['elasticity']
             elas_m2 = data_m2['elasticity']
             elas_mo = data_mo['elasticity']
-            Kv_m1, Kv_m2, Kv_mo = (elas_m1['K_Voigt'], elas_m2['K_Voigt'],
-                                   elas_mo['K_Voigt'])
+            Kv_m1, Kv_m2 = Kv_mo = (elas_m1['K_Voigt'], elas_m2['K_Voigt'])
+            if elas_mo:
+                Kv_mo = elas_mo['K_Voigt']
+            else:
+                with MPRester(self.user_api_key) as m:
+                    Kv_mo = m.get_data(id_mo, 
+                            prop="elastic_moduli", 
+                            data_type="pred")[0]['elastic_moduli']['K']
             self.add_feature(description='bulk modulus (mean)',
                              value=np.mean([Kv_m1, Kv_m2]))
             self.add_feature(description='bulk modulus (var)',
@@ -344,8 +354,14 @@ class Fingerprint:
             elas_m1 = data_m1['elasticity']
             elas_m2 = data_m2['elasticity']
             elas_mo = data_mo['elasticity']
-            Gv_m1, Gv_m2, Gv_mo = (elas_m1['G_Voigt'], elas_m2['G_Voigt'],
-                                   elas_mo['G_Voigt'])
+            Gv_m1, Gv_m2 = (elas_m1['G_Voigt'], elas_m2['G_Voigt'])
+            if elas_mo:
+                Gv_mo = elas_mo['G_Voigt']
+            else:
+                with MPRester(self.user_api_key) as m:
+                    Gv_mo = m.get_data(id_mo, 
+                            prop="elastic_moduli", 
+                            data_type="pred")[0]['elastic_moduli']['G']
             self.add_feature(description='shear modulus (mean)',
                              value=np.mean([Gv_m1, Gv_m2]))
             self.add_feature(description='shear modulus (var)',
@@ -454,17 +470,12 @@ class Fingerprint:
         """
 
         with MPRester(self.user_api_key) as m:
-            elasticity = None
-            i = 0
-            while elasticity is None:
-                info_MO = m.get_entries(compound, inc_structure='final',
-                                        property_data=['elasticity',
-                                                       'e_above_hull',
-                                                       'Correction'],
-                                        sort_by_e_above_hull=True)[i]
-                id_compound = info_MO.__dict__['entry_id']
-                elasticity = m.get_data(id_compound)[0]['elasticity']
-                i += 1
+            info_MO = m.get_entries(compound, inc_structure='final',
+                                    property_data=['elasticity',
+                                                   'e_above_hull',
+                                                   'Correction'],
+                                    sort_by_e_above_hull=True)[0]
+            id_compound = info_MO.__dict__['entry_id']
         return id_compound
 
     def add_feature(self, description, value):
