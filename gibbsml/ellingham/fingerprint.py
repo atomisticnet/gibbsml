@@ -470,12 +470,18 @@ class Fingerprint:
         """
 
         with MPRester(self.user_api_key) as m:
-            info_MO = m.get_entries(compound, inc_structure='final',
-                                    property_data=['elasticity',
-                                                   'e_above_hull',
-                                                   'Correction'],
-                                    sort_by_e_above_hull=True)[0]
-            id_compound = info_MO.__dict__['entry_id']
+            info_MOs = m.get_entries(compound, inc_structure='final',
+                                        property_data=['elasticity',
+                                                       'e_above_hull',
+                                                       'Correction'],
+                                        sort_by_e_above_hull=True)
+            for i in range(len(info_MOs)):
+                id_compound = info_MOs[i].__dict__['entry_id']
+                elasticity = m.get_data(id_compound)[0]['elasticity']
+                if elasticity:
+                    break
+            if not elasticity:
+                id_compound = info_MOs[0].__dict__['entry_id']
         return id_compound
 
     def add_feature(self, description, value):
