@@ -8,4 +8,4 @@ catlearn>=0.6.2
 plotly>=4.2.1
 mendeleev>=0.6.0
 django>=3.0.7
-gibbsml>=1.0.0
+gunicorn

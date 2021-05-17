@@ -50,5 +50,6 @@ setup(
             'dribble=dribble.scripts.dribble:main',
         ],
     },
+    include_package_data=True,
     # scripts=glob.glob(os.path.join("scripts", "*.py"))
 )

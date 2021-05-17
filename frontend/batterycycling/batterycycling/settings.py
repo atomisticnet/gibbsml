@@ -27,7 +27,8 @@ SECRET_KEY = 't*2lb!^p4n&s1*hv1vwu)%=a$k$a92f!@a!(g39&b-d!ihx)nc'
 DEBUG = True
 # DEBUG = int(os.environ.get('DEBUG', 0))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+#ALLOWED_HOSTS = []
 # ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS')
 # if ALLOWED_HOSTS_ENV:
 #     ALLOWED_HOSTS.extend(ALLOWED_HOSTS_ENV.split(','))
