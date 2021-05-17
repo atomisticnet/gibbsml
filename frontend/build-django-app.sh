@@ -6,3 +6,5 @@ cp -pr ../LICENSE ../MANIFEST.in ../README.md \
        ./gibbsml/
 
 sudo docker build -t batterycycling .
+
+rm -rf ./gibbsml
