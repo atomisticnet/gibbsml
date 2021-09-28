@@ -8,7 +8,12 @@ If you make use of GibbsML or part of the package, please cite the following ref
 
 J. A. Garrido Torres, V. Gharakhanyan, N. Artrith, T. Hoffmann Eegholm, and A. Urban, 
 "From zero Kelvin quantum mechanics to high-temperature metallurgy with machine learning",
-(2021) https://github.com/urban-group/gibbsml/
+(2021) *ASAP*
+
+## Contact
+
+J. A. Garrido Torres (jagt@princeton.edu) <br/>
+A. Urban (a.urban@columbia.edu)
 
 ## Installation
 
